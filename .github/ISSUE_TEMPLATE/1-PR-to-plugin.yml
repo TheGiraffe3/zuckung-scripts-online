@@ -1,0 +1,20 @@
+name: PR-to-plugin
+description: Submit a pull request conversion request
+labels:
+  - PR-to-plugin
+title: Pull Request Conversion Request
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Change the input field to the number of the Endless Sky pull request you want to turn into a plugin (e.g. 9172, 11347).
+
+        Please ensure that the pull request makes only content changes, or the generated plugin may not work.
+  - type: input
+    id: pr-number
+    attributes:
+      label: "Number"
+      description: "Enter the pull request number."
+      placeholder: "e.g. 9172"
+    validations:
+      required: true

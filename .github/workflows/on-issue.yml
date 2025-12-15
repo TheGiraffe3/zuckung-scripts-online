@@ -1,0 +1,251 @@
+name: Create Plugin
+
+on: 
+  issues: 
+    types: 
+      - opened
+      - reopened
+
+jobs:
+  mission-helper:
+    if: contains(github.event.issue.labels.*.name, 'mission.helper')
+    name: mission.helper
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
+      - name: Create path files
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PLUGIN_REPOSITORY="${{ github.event.issue.body }}" python3 scripts/get-repository.py
+      - name: Get requested repository
+        uses: guibranco/github-file-reader-action-v2@latest
+        with:
+          path: 'repository'
+        id: repository
+      - name: Get requested repository name
+        uses: guibranco/github-file-reader-action-v2@latest
+        with:
+          path: 'repository_name'
+        id: repository_name
+      - name: Get data path
+        uses: guibranco/github-file-reader-action-v2@latest
+        with:
+          path: 'datapath'
+        id: datapath
+      - name: Get multipluginname
+        uses: guibranco/github-file-reader-action-v2@latest
+        with:
+          path: 'multipluginname'
+        id: multipluginname
+      - name: Create downloaded directory
+        run: mkdir ${{ steps.repository_name.outputs.contents }}
+      - name: Download requested repository
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ steps.repository.outputs.contents }}
+          path: ${{ steps.repository_name.outputs.contents }}
+      - name: Move template file into correct location
+        run: |
+          mv assets/mission.helper.template.txt template.txt
+          ls
+      - name: Remove icon
+        run: |
+          PLUGIN="${{ steps.repository_name.outputs.contents }}"
+          if [ -f "$PLUGIN/icon.png" ]; then rm "$PLUGIN/icon.png"; fi
+          if [ -f "$PLUGIN/icon@2x.png" ]; then rm "$PLUGIN/icon@2x.png"; fi
+      - name: Generate plugin
+        run: |
+          REPOSITORY="${{ steps.datapath.outputs.contents }}" python3 scripts/mission.helper/generate.py
+      - name: Create plugin.txt
+        run: |
+          PLUGIN="${{ steps.multipluginname.outputs.contents }}" python3 scripts/mission.helper/create-plugin-txt.py
+      - name: Move files into subfolder and list contents
+        run: |
+          PLUGIN_NAME=${{ steps.multipluginname.outputs.contents }}-mission.helper
+          mkdir -p $PLUGIN_NAME/data
+          mv plugin.txt $PLUGIN_NAME
+          mv mission.helper.txt $PLUGIN_NAME/data
+          mv assets/mission.helper.png $PLUGIN_NAME/icon.png
+          mv assets/mission.helper@2x.png $PLUGIN_NAME/icon@2x.png
+      - name: Zip plugin
+        run: |
+          PLUGIN="${{ steps.multipluginname.outputs.contents }}"
+          echo "Zipping file: '$PLUGIN'"
+          zip -r "$PLUGIN-mission.helper.zip" "$PLUGIN-mission.helper"
+      - name: Upload plugin
+        uses: ncipollo/release-action@v1.11.1
+        with:
+          tag: mission.helper
+          allowUpdates: true
+          replacesArtifacts: true
+          updateOnlyUnreleased: false
+          artifacts: "*.zip"
+          body: "Note: these plugins have not been tested. If you find an issue with one of them, please open a bug report on the issues page."
+      - name: Add Comment and Close Issue
+        run: |
+          gh issue comment "$NUMBER" --body "$BODY"
+          gh issue close "$NUMBER"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NUMBER: ${{ github.event.issue.number }}
+          BODY: >
+            The mission helper plugin for ${{ steps.multipluginname.outputs.contents }} was generated, so this issue is being automatically closed.
+            You can download it on the [release page](https://github.com/TheGiraffe3/zuckung-scripts-online/releases/mission.helper) as ${{ steps.multipluginname.outputs.contents }}-mission.helper.zip.
+  PR-to-plugin:
+    if: contains(github.event.issue.labels.*.name, 'PR-to-plugin')
+    name: PR-to-plugin
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
+      - name: Generate plugin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ github.event.issue.body }}" python3 scripts/PR-to-plugin/generate.py
+      - name: Get PR number
+        uses: guibranco/github-file-reader-action-v2@latest
+        with:
+          path: 'PR_NUMBER'
+        id: pr_number
+      - name: Create plugin.txt
+        run: |
+          PR="${{ steps.pr_number.outputs.contents }}" python3 scripts/PR-to-plugin/create-plugin-txt.py
+      - name: Move in icon and plugin.txt
+        run: |
+          PR="${{ steps.pr_number.outputs.contents }}"
+          PR=$(echo "$PR" | tr -d '\n' | tr -d '\r')
+          mv assets/PR-to-plugin.png $PR/icon.png
+          mv assets/PR-to-plugin@2x.png $PR/icon@2x.png
+          mv plugin.txt $PR
+      - name: Zip plugin
+        run: |
+          PR_NUM="${{ steps.pr_number.outputs.contents }}"
+          PR_NUM=$(echo "$PR_NUM" | tr -d '\n' | tr -d '\r')
+          echo "Zipping folder: '$PR_NUM'"
+          zip -r "$PR_NUM.zip" "$PR_NUM"
+      - name: Upload plugins to release
+        uses: ncipollo/release-action@v1.11.1
+        with:
+          tag: PR-to-plugin
+          allowUpdates: true
+          replacesArtifacts: true
+          updateOnlyUnreleased: false
+          artifacts: "*.zip"
+          body: "Note: these plugins have not been tested. If you find an issue with one of them, please open a bug report on the issues page."
+      - name: Add Comment and Close Issue
+        run: |
+          gh issue comment "$NUMBER" --body "$BODY"
+          gh issue close "$NUMBER"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NUMBER: ${{ github.event.issue.number }}
+          BODY: >
+            The plugin was generated, so this issue is being automatically closed.
+            You can download it on the [release page](https://github.com/TheGiraffe3/zuckung-scripts-online/releases/PR-to-plugin).
+  ship-merging:
+    if: contains(github.event.issue.labels.*.name, 'ship.merging')
+    name: ship.merging
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
+      - name: Create path files
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PLUGIN_REPOSITORY="${{ github.event.issue.body }}" python3 scripts/get-repository.py
+      - name: Get requested repository
+        uses: guibranco/github-file-reader-action-v2@latest
+        with:
+          path: 'repository'
+        id: repository
+      - name: Get requested repository name
+        uses: guibranco/github-file-reader-action-v2@latest
+        with:
+          path: 'repository_name'
+        id: repository_name
+      - name: Get data path
+        uses: guibranco/github-file-reader-action-v2@latest
+        with:
+          path: 'datapath'
+        id: datapath
+      - name: Get multipluginname
+        uses: guibranco/github-file-reader-action-v2@latest
+        with:
+          path: 'multipluginname'
+        id: multipluginname
+      - name: Create downloaded directory
+        run: mkdir ${{ steps.repository_name.outputs.contents }}
+      - name: Download requested repository
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ steps.repository.outputs.contents }}
+          path: ${{ steps.repository_name.outputs.contents }}
+      - name: Remove unneeded files
+        run: |
+          mv ${{ steps.datapath.outputs.contents }} data
+          rm -r ${{ steps.repository_name.outputs.contents }}
+          mv data ${{ steps.multipluginname.outputs.contents }}
+      - name: Generate plugin
+        run: |
+          REPOSITORY="${{ steps.multipluginname.outputs.contents }}" python3 scripts/ship.merging/generate.py
+      - name: Create plugin.txt
+        run: |
+          PLUGIN="${{ steps.multipluginname.outputs.contents }}" python3 scripts/ship.merging/create-plugin-txt.py
+      - name: Move files into subfolder and list contents
+        run: |
+          PLUGIN_NAME=${{ steps.multipluginname.outputs.contents }}-ship.merging
+          mkdir -p $PLUGIN_NAME/data
+          mv plugin.txt $PLUGIN_NAME
+          mv ship_upgrades_mission.txt $PLUGIN_NAME/data
+          mv ship_upgrades_ships.txt $PLUGIN_NAME/data
+          mv assets/ship.merging.png $PLUGIN_NAME/icon.png
+          mv assets/ship.merging@2x.png $PLUGIN_NAME/icon@2x.png
+      - name: Zip plugin
+        run: |
+          PLUGIN="${{ steps.multipluginname.outputs.contents }}"
+          echo "Zipping file: '$PLUGIN'"
+          zip -r "$PLUGIN-ship.merging.zip" "$PLUGIN-ship.merging"
+      - name: Upload plugin
+        uses: ncipollo/release-action@v1.11.1
+        with:
+          tag: ship.merging
+          allowUpdates: true
+          replacesArtifacts: true
+          updateOnlyUnreleased: false
+          artifacts: "*.zip"
+          body: "Note: these plugins have not been tested. If you find an issue with one of them, please open a bug report on the issues page."
+      - name: Add Comment and Close Issue
+        run: |
+          gh issue comment "$NUMBER" --body "$BODY"
+          gh issue close "$NUMBER"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NUMBER: ${{ github.event.issue.number }}
+          BODY: >
+            The ship.merging plugin for ${{ steps.multipluginname.outputs.contents }} was generated, so this issue is being automatically closed.
+            You can download it on the [release page](https://github.com/TheGiraffe3/zuckung-scripts-online/releases/ship.merging) as ${{ steps.multipluginname.outputs.contents }}-ship.merging.zip.
+  add-comment-in-case-of-failure:
+    needs: [mission-helper, PR-to-plugin, ship-merging]
+    if: always() && (needs.mission-helper.result == 'failure' || needs.mission-helper.result == 'skipped') && (needs.PR-to-plugin.result == 'failure' || needs.PR-to-plugin.result == 'skipped') && (needs.ship-merging.result == 'failure'  || needs.ship-merging.result == 'skipped')
+    name: Add Warning Comment
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
+      - name: Add Comment
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --body "The script to automatically generate your plugin has failed, so the plugin may not be available for download. You will be notified when the script issue is fixed."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

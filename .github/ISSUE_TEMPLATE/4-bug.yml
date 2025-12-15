@@ -1,0 +1,29 @@
+name: Bug Report
+description: Submit a bug report for one of the automatically generated plugins
+labels:
+  - bug
+title: Bug Report
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template if you have found a bug with one of the automatically generated plugins. Please be specific about what the issue was.
+  - type: dropdown
+    id: plugin-type
+    attributes:
+      label: "Plugin Type"
+      description: "What type of plugin was it?"
+      options:
+        - PR-to-plugin
+        - ship.merging
+        - mission.helper
+    validations:
+      required: true
+  - type: input
+    id: bug-report
+    attributes:
+      label: "Bug"
+      description: "Describe the bug in as much detail as you can. Please upload your errors.txt file and save file."
+      placeholder: "It's showing the wrong options!"
+    validations:
+      required: true

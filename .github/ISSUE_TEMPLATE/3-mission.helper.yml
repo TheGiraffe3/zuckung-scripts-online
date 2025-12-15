@@ -1,0 +1,22 @@
+name: mission.helper
+description: Submit a mission.helper compatibility request
+labels:
+  - mission.helper
+title: mission.helper compatibility request
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Change the field to the owner/repository of the plugin you want to generate a compatibility plugin for (e.g. MidnightPlugins/Lost-in-Midnight, TheGiraffe3/rumskib).
+
+        To ensure script success, the repository must exist on GitHub.
+
+        If you want compatibility with a multi-plugin repo, enter the path to the plugin as well (e.g. zuckung/endless-sky-plugins/myplugins/bunrodea.missions). Please ensure that the plugin has a mission defined in it before requesting compatibility.
+  - type: input
+    id: checkout-repository
+    attributes:
+      label: "Repository"
+      description: "Enter the owner/repository name."
+      placeholder: "e.g. TheGiraffe3/rumskib"
+    validations:
+      required: true
