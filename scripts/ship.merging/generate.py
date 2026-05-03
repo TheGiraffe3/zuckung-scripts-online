@@ -11,7 +11,7 @@ def read_everything(data_folder):
 	folders.sort()
 	for folder in folders:
 		if os.path.isdir(data_folder + folder):
-			text_files = os.listdir(data_folder + folder)
+			text_files = [f for f in os.listdir(data_folder + folder) if f.endswith('.txt')]
 			text_files.sort()
 			for text_file in text_files:
 				if os.path.isfile(data_folder + folder + os.sep + text_file) == False:
